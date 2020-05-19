@@ -465,6 +465,29 @@ Rails.logger.info "ao instances? #{!ao["instances"].blank?}" if ao
         end
       end
     end
+    # CAM-specific - if the 'darwin' field has contents, add them!
+    if @row_hash.key?('darwin')
+      unless @row_hash['darwin'].blank?
+        content = @row_hash['darwin']
+        type = "otherfindaid"
+        note_type = @note_types[type]
+        darwin_note = JSONModel(note_type[:target]).new
+        darwin_note.publish = publish
+        darwin_note.type = type
+        darwin_note.label = "Darwin Letter Number"
+        begin
+          wellformed(content)
+          inner_darwin_note = JSONModel(:note_text).new
+          inner_darwin_note.content = content
+          inner_darwin_note.publish = publish
+          darwin_note.subnotes.push inner_darwin_note
+          ao.notes.push darwin_note
+        rescue Exception => e
+          errs.push(I18n.t('plugins.aspace-import-excel.error.bad_note', :type => note_type[:value] , :msg => CGI::escapeHTML( e.message)))
+        end
+      end
+    end
+    # end CAM-specific section
     errs
   end
 
