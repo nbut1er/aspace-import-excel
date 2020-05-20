@@ -465,25 +465,27 @@ Rails.logger.info "ao instances? #{!ao["instances"].blank?}" if ao
         end
       end
     end
-    # CAM-specific - if the 'darwin' field has contents, add them!
-    if @row_hash.key?('darwin')
-      unless @row_hash['darwin'].blank?
-        content = @row_hash['darwin']
-        type = "otherfindaid"
-        note_type = @note_types[type]
-        darwin_note = JSONModel(note_type[:target]).new
-        darwin_note.publish = publish
-        darwin_note.type = type
-        darwin_note.label = "Darwin Letter Number"
-        begin
-          wellformed(content)
-          inner_darwin_note = JSONModel(:note_text).new
-          inner_darwin_note.content = content
-          inner_darwin_note.publish = publish
-          darwin_note.subnotes.push inner_darwin_note
-          ao.notes.push darwin_note
-        rescue Exception => e
-          errs.push(I18n.t('plugins.aspace-import-excel.error.bad_note', :type => note_type[:value] , :msg => CGI::escapeHTML( e.message)))
+    # CAM-specific - if the 'darwin' or 'otherref' field have contents, add them! Both need to be 'otherfindaid'-type notes
+    {'darwin' => "Darwin Letter Number", 'otherref' => "Former/Other reference"}.each do | field, label |
+      if @row_hash.key?(field)
+        unless @row_hash[field].blank?
+          content = @row_hash[field]
+          type = "otherfindaid"
+          note_type = @note_types[type]
+          note = JSONModel(note_type[:target]).new
+          note.publish = publish
+          note.type = type
+          note.label = label
+          begin
+            wellformed(content)
+            inner_note = JSONModel(:note_text).new
+            inner_note.content = content
+            inner_note.publish = publish
+            note.subnotes.push inner_note
+            ao.notes.push note
+          rescue Exception => e
+            errs.push(I18n.t('plugins.aspace-import-excel.error.bad_note', :type => note_type[:value] , :msg => CGI::escapeHTML( e.message)))
+          end
         end
       end
     end
